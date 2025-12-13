@@ -1,0 +1,63 @@
+{
+  "name": "Safe Runner",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-22.04",
+
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts"
+    },
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/php:1": {
+      "version": "latest",
+      "installComposer": true
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {
+      "version": "latest"
+    }
+  },
+
+  // 🔐 PERMISSIONS
+  // We need to ask for permission to delete the codespace via API.
+  "customizations": {
+    "codespaces": {
+      "repositories": {
+        "permissions": {
+          "codespaces": "write"
+        }
+      }
+    }
+  },
+
+  "runArgs": [
+    // 1. We forbid you to be a system administrator inside the container
+    "--cap-drop=SYS_ADMIN",
+    // 2. We forbid changing network settings (although the network is already isolated)
+    "--cap-drop=NET_ADMIN",
+    // 3. We prohibit debugging of other people's processes (protection from memory reading)
+    "--cap-drop=SYS_PTRACE",
+
+    // Critical: prevent sudo.
+    // prevent privilege escalation.
+    "--security-opt=no-new-privileges",
+
+    "--pids-limit=256",
+    // 4. Use an init process to handle zombie processes
+    "--init" 
+  ],
+
+  // 🚩 ENV VARIABLES
+  "containerEnv": {
+    "SAFE_RUN_ENV": "true"
+  },
+
+  // ⚙️ SETUP COMMANDS
+  // Make our scripts executable immediately upon creation
+  "postCreateCommand": "chmod +x audit.sh run.sh rules/*.sh",
+
+  // 💣 THE TIME BOMB
+  // As soon as the container starts, a background timer begins.
+  // Since we are non-root, this kills all user processes, crashing the session.
+  "postStartCommand": "echo 'alias nuke=\"gh codespace delete --current --force\"' >> /home/vscode/.bashrc && nohup bash -c 'sleep 7200 && gh codespace delete --current --force' > /dev/null 2>&1 & echo '✅ Safe Runner Active. Type `nuke` to destroy codespace.'"
+}
