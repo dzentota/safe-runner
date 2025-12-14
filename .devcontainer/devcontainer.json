@@ -31,12 +31,10 @@
     "SAFE_RUN_ENV": "true"
   },
 
-  // SETUP COMMANDS
-  // 1. Install Semgrep (SAST) via pip (user level)
-  // 2. Install OSV-Scanner (SCA) via Go
-  // 3. Make scripts executable
-  // 4. Setup aliases
-  "postCreateCommand": "pip install --user semgrep && go install github.com/google/osv-scanner/cmd/osv-scanner@v1 && chmod +x audit.sh run.sh rules/*.sh",
+  // SAST + SCA
+  "updateContentCommand": "pip install --user semgrep && go install github.com/google/osv-scanner/cmd/osv-scanner@v1",
 
-  "postStartCommand": "echo 'alias nuke=\"gh codespace delete --current --force\"' >> /home/vscode/.bashrc && nohup bash -c 'sleep 7200 && gh codespace delete --current --force' > /dev/null 2>&1 & echo '✅ Safe Runner Active. Tools: Semgrep (SAST) & OSV-Scanner (SCA) installed.'"
+  "postCreateCommand": "chmod +x audit.sh run.sh rules/*.sh",
+
+  "postStartCommand": "echo 'alias nuke=\"gh codespace delete --current --force\"' >> /home/vscode/.bashrc && nohup bash -c 'sleep 7200 && gh codespace delete --current --force' > /dev/null 2>&1 & echo '✅ Safe Runner Active. Tools: Semgrep & OSV-Scanner pre-baked.'"
 }
