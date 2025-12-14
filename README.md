@@ -1,57 +1,91 @@
 # 🛡️ Safe Runner Template
 
-**Run untrusted code securely during interviews and audits.**
+**Run untrusted code securely.**
 
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/dzentota/safe-runner)
 
-This repository is a hardened sandbox designed to execute untrusted code (like interview test tasks) without risking your local machine. It leverages ephemeral environments (GitHub Codespaces) and strict container policies (Defense in Depth).
+This is a **hardened, paranoid sandbox** designed to execute untrusted code (like interview take-home tasks) securely.
+It uses ephemeral cloud environments (GitHub Codespaces) combined with strict container policies and automated forensic tools.
 
-## 🚀 The Philosophy
-1.  **Secure by Default:** Execution relies on aggressive flags (e.g., `npm --ignore-scripts`).
-2.  **Deny by Default:** Network ports and root privileges are locked down.
-3.  **Disposable:** The environment is designed to self-destruct after 2 hours.
+## 🚀 Why Use This?
+* **Defense in Depth:** Multiple layers of security (Container permissions, Network isolation, Static Analysis).
+* **Disposable:** The environment self-destructs after use.
+* **Smart:** Automatically detects Node.js, Python, and PHP projects and runs them safely.
+
+---
 
 ## ⚡ Quick Start
 
-1.  **Do NOT clone the untrusted repo directly.**
-2.  Click the **"Open in GitHub Codespaces"** badge above (or fork this repo and create a Codespace).
-3.  Once inside the VS Code terminal, create a subfolder and clone the untrusted code into it:
+### 1. Enable Turbo Mode (Critical!) 🏎️
+*By default, Codespaces take > 5 minutes to build. Do this once to make startup **instant (15s)**.*
+1.  Go to this repository's **Settings** → **Codespaces**.
+2.  Under **Prebuild configurations**, click **Set up prebuild**.
+3.  Select branch `main` and your region. Click **Create**.
+4.  Wait for the initial build to finish (Status: "Available").
+
+### 2. Run the untrusted code
+1.  Click the **"Open in GitHub Codespaces"** badge above.
+2.  In the terminal, create a folder for the untrusted code:
     ```bash
     mkdir target
     git clone <UNTRUSTED_REPO_URL> target
     cd target
     ```
-4.  Run the automated audit and installer:
+3.  **Phase 1: Deep Audit**
+    Run the forensic scanner. It uses **Semgrep** (SAST) and **OSV-Scanner** (SCA) to find malware and vulnerabilities:
     ```bash
-    ../audit.sh  # Check for red flags
-    ../run.sh    # Install and run safely
+    ../audit.sh
+    ```
+4.  **Phase 2: Safe Execution**
+    If the audit passes, run the safe launcher. It installs dependencies *without* scripts and locks down the runtime:
+    ```bash
+    ../run.sh
+    ```
+5.  **Phase 3: Nuke It** 🧨
+    When finished, type the magic command to instantly destroy the cloud environment:
+    ```bash
+    nuke
     ```
 
-## 🔒 Security Features
+---
 
-### 1. Hardened Container (`devcontainer.json`)
-The environment runs with minimized Linux kernel capabilities:
-* `--cap-drop=ALL`: Removes all root capabilities.
-* `--security-opt=no-new-privileges`: Prevents `sudo` or SUID binary escalation.
-* `--pids-limit=256`: Prevents fork-bomb DoS attacks.
+## 🔒 Security Architecture
 
-### 2. Static Audit (`audit.sh`)
-Automatically scans for "Red Flags" in the codebase:
-* `postinstall`, `preinstall` scripts in `package.json` / `composer.json`.
-* `child_process`, `exec`, `shell_exec` usage in source files.
-* Suspicious network calls (`curl`, `wget`).
-* Hidden directories.
+### Level 1: The Jail Cell (`devcontainer.json`)
+We strip the container of administrative privileges to prevent breakouts:
+* `--cap-drop=SYS_ADMIN`: You cannot control the system.
+* `--cap-drop=NET_ADMIN`: You cannot sniff traffic or change firewall rules.
+* `--security-opt=no-new-privileges`: Blocks `sudo` and SUID binary attacks.
+* `--pids-limit=256`: Prevents Fork Bomb DoS attacks.
 
-### 3. Safe Execution Rules (`rules/`)
-Instead of running standard install commands (which execute arbitrary code), we use language-specific guardrails:
+### Level 2: Forensic Tools (`audit.sh`)
+Before you run code, we scan it with industry-standard tools pre-installed in the image:
+* **OSV-Scanner (Google):** Checks `package-lock.json` / `requirements.txt` against the Open Source Vulnerability database (finds compromised dependencies).
+* **Semgrep:** Static analysis looking for secrets, `eval()`, `exec()`, and other dangerous patterns in source code.
+* **Anti-Obfuscation:** Scans for high-entropy strings and hidden folders.
 
-* **Node.js:** Uses `npm ci --ignore-scripts`. Blocks malware triggers during installation.
-* **PHP:** Uses `composer install --no-scripts` and runs the server with `-d disable_functions=exec,shell_exec...`.
-* **Python:** Uses `pip install --no-build-isolation --no-deps`.
+### Level 3: Deny-by-Default Execution (`rules/`)
+We never run standard install commands. We use "Paranoid Mode":
+* **Node.js:** `npm ci --ignore-scripts` (Blocks `postinstall` malware).
+* **PHP:** `composer install --no-scripts` + Runtime `disable_functions` (exec, shell_exec, system, passthru).
+* **Python:** `pip install --no-build-isolation --no-deps`.
 
-### 4. Network & Time Guardrails
-* Apps are forced to bind to `127.0.0.1` to prevent public internet exposure.
-* **Time Bomb:** A background process will kill the session automatically after 2 hours to prevent persistence.
+### Level 4: The Time Bomb
+* **Automatic:** The environment executes `nuke` automatically after **2 hours** to prevent persistence.
+* **Manual:** The `nuke` alias runs `gh codespace delete --codespace $CODESPACE_NAME --force`.
+
+---
+
+## 📦 Supported Stacks
+
+The `run.sh` script automatically detects:
+* ✅ **Node.js / Next.js / React** (`package.json`)
+* ✅ **Python** (`requirements.txt` / `pyproject.toml`)
+* ✅ **PHP** (`composer.json` / `index.php`)
+
+---
 
 ## ⚠️ Disclaimer
-This tool mitigates common attacks (droppers, script-based malware) but may not stop zero-day kernel exploits. **Always review code before running it, even in a sandbox.**
+**No sandbox is inescapable.** This tool mitigates common interview attacks (droppers, script-based malware, accidental exposure) but may not stop zero-day kernel exploits or sophisticated VM escape attacks.
+* **Always review code.**
+* **Never enter your real credentials (AWS, SSH, Banking) inside the sandbox.**
