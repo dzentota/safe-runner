@@ -31,10 +31,15 @@
     "SAFE_RUN_ENV": "true"
   },
 
-  // SAST + SCA
+  //INSTALL TOOLS (Prebuild)
   "updateContentCommand": "pip install --user semgrep && go install github.com/google/osv-scanner/cmd/osv-scanner@v1",
 
-  "postCreateCommand": "chmod +x audit.sh run.sh rules/*.sh",
+  // CONFIGURE SHELL (Runs once at creation)
+  // We add the alias here so it is ready BEFORE you log in.
+  "postCreateCommand": "chmod +x audit.sh run.sh rules/*.sh && echo 'alias nuke=\"gh codespace delete --codespace $CODESPACE_NAME --force\"' >> /home/vscode/.bashrc",
 
-  "postStartCommand": "echo 'alias nuke=\"gh codespace delete --current --force\"' >> /home/vscode/.bashrc && nohup bash -c 'sleep 7200 && gh codespace delete --current --force' > /dev/null 2>&1 & echo '✅ Safe Runner Active. Tools: Semgrep & OSV-Scanner pre-baked.'"
+  //  RUNTIME SAFETY
+  //  (Runs every time the container starts)
+  //  Only the timer runs here.
+  "postStartCommand": "nohup bash -c 'sleep 7200 && gh codespace delete --codespace $CODESPACE_NAME --force' > /dev/null 2>&1 & echo '✅ Safe Runner Active. Type `nuke` to destroy codespace.'"
 }
